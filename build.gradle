@@ -1,3 +1,6 @@
+import java.nio.file.Files
+import java.nio.file.StandardOpenOption
+
 buildscript {
     repositories {//more than you need
         mavenLocal()
@@ -35,9 +38,107 @@ dependencies {
 test {
     useJUnitPlatform()
 }
+ext {
+    File props = new File(projectDir, 'gradle.properties')
+    if(!props.exists())
+        props.createNewFile();
+    File atom = new File(projectDir, '../Atom')
+    if (atom.exists() && props.exists()) {
+        String s = new String(Runtime.getRuntime().exec("git rev-parse HEAD", new String[0], atom).getInputStream().readAllBytes()).trim();
+        if (s != atomHash) {
+            Properties properties = new Properties()
+            StringWriter writer = new StringWriter();
+            properties.load(props.toURI().toURL().openStream());
+            properties.put("atomHash", s);
+            properties.store(writer, "Touch")
+            Files.writeString(props.toPath(), writer.getBuffer().toString(), StandardOpenOption.WRITE);
+            atomHash = s;
+        }
+    }
+}
 
 //source code documentation instead of decompiled .class, if you use jitpack that is
 task sourcesJar(type: Jar, dependsOn: classes) {
     classifier = 'sources'//deprecated, what the replacement ?
     from sourceSets.main.allSource
+}
+//need this for jitpack, so i can read mods source code without using browser
+artifacts {
+    archives sourcesJar
+}
+
+
+allprojects {
+
+    apply plugin: 'java'
+    apply plugin: 'java-library'
+    group 'io.itzbenz'
+    version '1.0'
+    try {
+        buildScan {
+            termsOfServiceUrl = 'https://gradle.com/terms-of-service'
+            termsOfServiceAgree = 'yes'
+        }
+    } catch (e){
+
+    }
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+        maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+        maven { url 'https://jitpack.io' }
+    }
+
+    ext.atomModule = { String module ->
+        boolean b = new File(rootDir, '../Atom').exists()
+        b = false
+        if (b) {
+            return project(":Atom" + module)
+        } else {
+            return "com.github.o7-Fire.Atomic-Library$module:$atomHash"
+        }
+    }
+    ext.aproj = { String module ->
+        if (findProject(module) != null) {
+            return project(module)
+        } else {
+            return project(":" + modsNname + module)
+        }
+    }
+    ext {
+        try {
+
+            System.properties.load(new FileReader(new File(rootDir, "gradle.properties")))
+            System.properties.load(new FileReader(new File(rootDir, "local.properties")))
+        } catch (s) {
+            //println s
+        }
+
+    }
+
+        //From Root to every project
+        dependencies {
+            implementation(atomModule(":Atomic"))
+            testImplementation 'org.junit.jupiter:junit-jupiter:5.7.0'
+            testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.1'
+            compileOnly group: 'org.jetbrains', name: 'annotations', version: '21.0.1'
+
+        }
+        tasks.withType(JavaCompile) {
+            options.encoding = "UTF-8"
+            options.compilerArgs += ["-Xlint:deprecation", "-g"]
+
+            options.forkOptions.jvmArgs.addAll([
+                    '--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED',
+                    '--add-opens=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED'
+            ])
+        }
+        tasks.withType(Javadoc) {
+            options {
+                addStringOption('Xdoclint:none', '-quiet')
+                addStringOption('-release', '16')
+            }
+        }
 }
