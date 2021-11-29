@@ -31,6 +31,11 @@ repositories {
 }
 
 dependencies {
+    implementation group: 'com.github.jreddit', name: 'jreddit', version: '1.0.3'
+    implementation 'com.hierynomus:sshj:0.31.0'
+    implementation 'org.json:json:20210307'
+    implementation 'org.jsoup:jsoup:1.14.3'
+
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
 }
@@ -93,7 +98,6 @@ allprojects {
 
     ext.atomModule = { String module ->
         boolean b = new File(rootDir, '../Atom').exists()
-        b = false
         if (b) {
             return project(":Atom" + module)
         } else {

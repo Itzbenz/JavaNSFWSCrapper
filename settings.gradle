@@ -1,4 +1,4 @@
-rootProject.name = 'Template-Gralde'
+rootProject.name = "JavaNSFWSCrapper"
 println "JDK: " + JavaVersion.current()
 
 def use = { ... names ->

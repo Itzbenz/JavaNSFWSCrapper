@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CompilerConfiguration">
-    <bytecodeTargetLevel target="1.8" />
+    <bytecodeTargetLevel target="1.8">
+      <module name="Template-Gralde" target="16" />
+      <module name="Template-Gralde.Atom" target="16" />
+      <module name="Template-Gralde.Atom.Desktop" target="1.9" />
+      <module name="Template-Gralde.Atom.Desktop.main" target="1.9" />
+      <module name="Template-Gralde.Atom.Desktop.test" target="1.9" />
+      <module name="Template-Gralde.Atom.main" target="16" />
+      <module name="Template-Gralde.Atom.test" target="16" />
+      <module name="Template-Gralde.main" target="16" />
+      <module name="Template-Gralde.test" target="16" />
+    </bytecodeTargetLevel>
   </component>
 </project>
