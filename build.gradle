@@ -30,15 +30,7 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-    implementation group: 'com.github.jreddit', name: 'jreddit', version: '1.0.3'
-    implementation 'com.hierynomus:sshj:0.31.0'
-    implementation 'org.json:json:20210307'
-    implementation 'org.jsoup:jsoup:1.14.3'
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
-}
 
 test {
     useJUnitPlatform()
@@ -73,12 +65,8 @@ artifacts {
 }
 
 
-allprojects {
+//allprojects {
 
-    apply plugin: 'java'
-    apply plugin: 'java-library'
-    group 'io.itzbenz'
-    version '1.0'
     try {
         buildScan {
             termsOfServiceUrl = 'https://gradle.com/terms-of-service'
@@ -128,6 +116,13 @@ allprojects {
             testImplementation 'org.junit.jupiter:junit-jupiter:5.7.0'
             testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.1'
             compileOnly group: 'org.jetbrains', name: 'annotations', version: '21.0.1'
+            implementation group: 'com.github.jreddit', name: 'jreddit', version: '1.0.3'
+            implementation 'com.hierynomus:sshj:0.31.0'
+            implementation 'org.json:json:20210307'
+            implementation 'org.jsoup:jsoup:1.14.3'
+
+            testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
+            testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
 
         }
         tasks.withType(JavaCompile) {
@@ -145,4 +140,25 @@ allprojects {
                 addStringOption('-release', '16')
             }
         }
+//}
+task doingYourJar(type: Jar) {
+    archiveName(project.name+".jar")
+    manifest {
+        attributes(
+                'Main-Class': 'Saddad'
+        )
+    }
+    duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
+    from {
+        configurations.runtimeClasspath.collect {
+            //it.exists() ?
+            it.isDirectory() ? it : zipTree(it)
+            //        : null
+        }
+    }
+    //somehow it broke without this
+    with jar
+}
+task deploy{
+    dependsOn doingYourJar
 }

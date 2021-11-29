@@ -2,6 +2,8 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel target="1.8">
+      <module name="JavaNSFWSCrapper.Atom.main" target="16" />
+      <module name="JavaNSFWSCrapper.Atom.test" target="16" />
       <module name="Template-Gralde" target="16" />
       <module name="Template-Gralde.Atom" target="16" />
       <module name="Template-Gralde.Atom.Desktop" target="1.9" />
