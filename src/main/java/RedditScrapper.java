@@ -3,8 +3,6 @@ import Atom.Utility.Random;
 import Atom.Utility.Utility;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import java.io.File;
 import java.io.FileReader;
@@ -12,6 +10,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,9 +21,8 @@ public class RedditScrapper implements Scrapper {
     public static transient final String[] sfwArray = Utility.merge(neutral, drawings);
     public static transient final String[] nsfwArray = Utility.merge(hentai, porn, sexy, gore);
     public static transient final int totalSubreddit = hentai.length + drawings.length + porn.length + sexy.length + gore.length;
-    @java.io.Serial
+    
     private static final long serialVersionUID = 1;
-    protected transient final JSONParser jsonParser = new JSONParser();
     protected HashMap<Integer, String> lastID = new HashMap<>();
     
     public List<URL> get(String subreddit, String id, boolean nsfw) throws IOException, ParseException {

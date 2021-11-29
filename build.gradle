@@ -20,8 +20,8 @@ apply plugin: 'java'
 apply plugin: 'java-library'
 
 //cool
-sourceCompatibility = JavaVersion.VERSION_16
-targetCompatibility = JavaVersion.VERSION_16
+sourceCompatibility = JavaVersion.VERSION_11
+targetCompatibility = JavaVersion.VERSION_11
 
 group 'io.itzbenz'
 version '1.0'
@@ -116,10 +116,8 @@ artifacts {
             testImplementation 'org.junit.jupiter:junit-jupiter:5.7.0'
             testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.1'
             compileOnly group: 'org.jetbrains', name: 'annotations', version: '21.0.1'
-            implementation group: 'com.github.jreddit', name: 'jreddit', version: '1.0.3'
             implementation 'com.hierynomus:sshj:0.31.0'
             implementation 'org.json:json:20210307'
-            implementation 'org.jsoup:jsoup:1.14.3'
 
             testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
             testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
@@ -137,7 +135,7 @@ artifacts {
         tasks.withType(Javadoc) {
             options {
                 addStringOption('Xdoclint:none', '-quiet')
-                addStringOption('-release', '16')
+                addStringOption('-release', '11')
             }
         }
 //}
