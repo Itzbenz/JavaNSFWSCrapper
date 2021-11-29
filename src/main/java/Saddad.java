@@ -59,6 +59,8 @@ public class Saddad {
             System.exit(1);
         }
         Saddad.args = args;
+        //20 gigabytes
+        long bytes = 20L * 1024 * 1024 * 1024;
         final Scrapper[] scrappers = new Scrapper[]{new RedditScrapper()};
         loadState(scrappers);
         Thread savingScrapper = new Thread(() -> {
@@ -100,6 +102,7 @@ public class Saddad {
                 }catch(Exception bs){
                     System.err.println(bs.getMessage());
                     System.err.println(scrapper.getClass().getName());
+                    bs.printStackTrace();
                 }
             }
             if (limit.get()){
@@ -174,19 +177,25 @@ public class Saddad {
     
     //upload sftp using org.apache.sshd-sftp
     public static void uploadToSftp(byte[] image, boolean nsfw) throws IOException {
-        
+    
         // override any default configuration...
         byte[] b = Atom.Utility.Digest.sha256(image);
         //to hex
         String hex = Digest.toHex(b);
+    
         String path = "~/dataset" + (nsfw ? "/nsfw/" : "/sfw/") + hex + ".jpg";
+        try {
+            ftpLocal.get().mkdirs("~/dataset" + (nsfw ? "/nsfw/" : "/sfw/"));
+        }catch(IOException ignored){
+        
+        }
         if (ftpLocal.get().statExistence(path) != null) return;
         ftpLocal.get().put(new InMemorySourceFile() {
             @Override
             public String getName() {
                 return hex + ".jpg";
             }
-            
+        
             @Override
             public long getLength() {
                 return image.length;

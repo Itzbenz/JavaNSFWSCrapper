@@ -29,13 +29,17 @@ public class RedditScrapper implements Scrapper {
         URL u = new URL("https://www.reddit.com/r/" + subreddit + "/new.json?limit=100" + (id == null ? "" : "&after=" + id));
         //http request
         //nsfw contain
-        
+    
         byte[] b = Request.get(u.toExternalForm(), c -> {
             //set user agent
             c.setRequestProperty("User-Agent", "Reddit API");
         });
         JSONObject object = new JSONObject(new String(b));
-        lastID.put(subreddit.hashCode(), object.getJSONObject("data").getString("after"));
+        try {
+            lastID.put(subreddit.hashCode(), object.getJSONObject("data").getString("after"));
+        }catch(Exception e){
+            //shrug
+        }
         ArrayList<URL> filtered = new ArrayList<>();
         JSONArray children = object.getJSONObject("data").getJSONArray("children");
         for (int i = 0; i < children.length(); i++) {
@@ -71,7 +75,7 @@ public class RedditScrapper implements Scrapper {
     
     @Override
     public void saveScrapperState(File file) throws IOException {
-        new JSONObject(lastID).write(new FileWriter(file));
+        new JSONObject(lastID).write(new FileWriter(file)).flush();
     }
     
     @Override
