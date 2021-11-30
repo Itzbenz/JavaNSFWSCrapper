@@ -188,9 +188,10 @@ public class Saddad {
         //to hex
         String hex = Digest.toHex(b);
     
-        String path = "~/dataset" + (nsfw ? "/nsfw/" : "/sfw/") + hex + ".jpg";
+        String path = remoteDir + (nsfw ? "/nsfw/" : "/sfw/") + hex + ".jpg";
         try {
-            ftpLocal.get().mkdirs("~/dataset" + (nsfw ? "/nsfw/" : "/sfw/"));
+            String dir = path.substring(0, path.lastIndexOf("/"));
+            ftpLocal.get().mkdirs(dir);
         }catch(IOException ignored){
         
         }
