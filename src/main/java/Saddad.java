@@ -3,9 +3,11 @@ import Atom.Utility.Digest;
 import Atom.Utility.Pool;
 import Atom.Utility.Random;
 import net.schmizz.sshj.SSHClient;
+import net.schmizz.sshj.common.LoggerFactory;
 import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.xfer.InMemorySourceFile;
+import net.schmizz.sshj.xfer.LoggingTransferListener;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -29,7 +31,9 @@ public class Saddad {
     });
     public static final ThreadLocal<SFTPClient> ftpLocal = ThreadLocal.withInitial(() -> {
         try {
-            return sshLocal.get().newSFTPClient();
+            SFTPClient c = sshLocal.get().newSFTPClient();
+            c.getFileTransfer().setTransferListener(new LoggingTransferListener(LoggerFactory.DEFAULT) {});
+            return c;
         }catch(IOException e){
             throw new RuntimeException(e);
         }
@@ -57,6 +61,10 @@ public class Saddad {
         if (args.length != 4){
             System.err.println("<host> <port> <username> <password>");
             System.exit(1);
+        }
+        if (Pool.service instanceof ThreadPoolExecutor){
+            ((ThreadPoolExecutor) Pool.service).setMaximumPoolSize(Runtime.getRuntime().availableProcessors() * 20);
+            System.err.println("Setting max pool size to " + ((ThreadPoolExecutor) Pool.service).getMaximumPoolSize());
         }
         Saddad.args = args;
         //20 gigabytes
@@ -206,7 +214,8 @@ public class Saddad {
                 return new ByteArrayInputStream(image);
             }
         }, path);
-        
+    
+    
     }
     
     //encode to upload to sftp
