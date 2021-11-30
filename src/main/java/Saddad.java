@@ -13,6 +13,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.URL;
 import java.util.List;
+import java.util.WeakHashMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -20,26 +21,28 @@ public class Saddad {
     
     public static final int sizeW = 224, sizeH = 224;
     public static String[] args;
-    public static SSHClient ssh;
     public static final ThreadLocal<SSHClient> sshLocal = ThreadLocal.withInitial(() -> {
         try {
             return setupSshj();
         }catch(IOException e){
             throw new RuntimeException(e);
         }
-    });   
+    });
     public static final ThreadLocal<SFTPClient> ftpLocal = ThreadLocal.withInitial(() -> {
         try {
-            SFTPClient c = sshLocal.get().newSFTPClient();
             //c.getFileTransfer().setTransferListener(new LoggerTransferLister());
-            return c;
+            return sshLocal.get().newSFTPClient();
         }catch(IOException e){
             throw new RuntimeException(e);
         }
     });
+    public static SSHClient ssh;
     public static Integer[] scalingType = {Image.SCALE_FAST, Image.SCALE_REPLICATE, Image.SCALE_AREA_AVERAGING, Image.SCALE_SMOOTH, Image.SCALE_DEFAULT};
-    static volatile boolean save = false;
     public static String remoteDir = "dataset";
+    public static WeakHashMap<URL, Object> processed = new WeakHashMap<>(20000, 0.8f);
+    static volatile boolean save = false;
+    static long nsfwCount = 0, sfwCount = 0;
+    
     public static File getSaveFile(Scrapper s) {
         return new File("state-" + s.getClass().getSimpleName() + ".state");
     }
@@ -65,7 +68,7 @@ public class Saddad {
         ssh = setupSshj();
         if (args.length > 5){
             remoteDir = args[4];
-        
+    
         }
         remoteDir = remoteDir.endsWith("/") ? remoteDir.substring(0, remoteDir.length() - 1) : remoteDir;
         System.err.println("Remote dir: " + remoteDir);
@@ -94,26 +97,24 @@ public class Saddad {
         });
         Runtime.getRuntime().addShutdownHook(savingScrapper);
         Timer timer = new Timer(TimeUnit.SECONDS, 5), limit = new Timer(TimeUnit.MINUTES, 30);
-        long nsfwCount = 0, sfwCount = 0;
+    
         while (true) {
             for (Scrapper scrapper : scrappers) {
                 try {
                     boolean nsfw = Random.getBool();
                     List<URL> urls = nsfw ? scrapper.nsfw() : scrapper.sfw();
-                    if (nsfw) nsfwCount += urls.size();
-                    else sfwCount += urls.size();
+    
                     if (timer.get())
                         System.out.println("nsfw: " + nsfwCount + " sfw: " + sfwCount + " total: " + (nsfwCount + sfwCount) + " threads: " + ((ThreadPoolExecutor) Pool.service).getPoolSize());
-                    
-                    Pool.submit(() -> {
-                        try {
-                            process(urls, nsfw);
-                        }catch(Exception e){
-                            System.err.println("Failed to process urls, scrapper: " + scrapper.getClass()
-                                    .getSimpleName());
-                            System.err.println(e.getMessage());
-                        }
-                    });
+    
+                    // Pool.submit(() -> {
+                    try {
+                        process(urls, nsfw);
+                    }catch(Exception e){
+                        System.err.println("Failed to process urls, scrapper: " + scrapper.getClass().getSimpleName());
+                        System.err.println(e.getMessage());
+                    }
+                    //});
                 }catch(Exception bs){
                     System.err.println(bs.getMessage());
                     System.err.println(scrapper.getClass().getName());
@@ -147,34 +148,44 @@ public class Saddad {
     
     public static void process(List<URL> urls, boolean nsfw) {
         for (URL url : urls) {
-            try {
-                BufferedImage image = ImageIO.read(url);
-                if (image == null) continue;
-                //CPU Intensive
-                Pool.async(() -> {
-                    BufferedImage resized = resize(image, sizeW, sizeH);
-                    try {
-                        byte[] encoded = encodeImage(resized);
-                        //switch to IO intensive
-                        Pool.submit(() -> {
-                            try {
-                                uploadToSftp(encoded, nsfw);
-                            }catch(IOException e){
-                                System.err.println("Failed to upload image to sftp, image: " + url);
-                                System.err.println(e.getMessage());
-                            }
-                        });
-                    }catch(IOException e){
-                        System.err.println("Failed to encode image: " + url);
-                        System.err.println(e.getMessage());
-                    }
-                });
-                
-                
-            }catch(IOException e){
-                System.err.println("Failed to process image from url: " + url);
-                System.err.println(e.getMessage());
+            Object o = processed.get(url);
+            if (o != null){
+                continue;
             }
+            processed.put(url, url.toExternalForm());
+            if (nsfw) nsfwCount++;
+            else sfwCount++;
+            BufferedImage image = null;
+            try {
+                image = ImageIO.read(url);
+            }catch(IOException e){
+                System.err.println("Failed to read image from url: " + url);
+                System.err.println(e.getMessage());
+                continue;
+            }
+    
+            //CPU Intensive
+            BufferedImage finalImage = image;
+            Pool.async(() -> {
+                BufferedImage resized = resize(finalImage, sizeW, sizeH);
+                try {
+                    byte[] encoded = encodeImage(resized);
+                    //switch to IO intensive
+                    Pool.submit(() -> {
+                        try {
+                            uploadToSftp(encoded, nsfw);
+                        }catch(IOException e){
+                            System.err.println("Failed to upload image to sftp, image: " + url);
+                            System.err.println(e.getMessage());
+                        }
+                    });
+                }catch(IOException e){
+                    System.err.println("Failed to encode image: " + url);
+                    System.err.println(e.getMessage());
+                }
+            });
+    
+    
         }
     }
     
@@ -211,7 +222,7 @@ public class Saddad {
             public String getName() {
                 return hex + ".jpg";
             }
-        
+    
             @Override
             public long getLength() {
                 return image.length;
