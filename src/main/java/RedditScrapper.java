@@ -54,7 +54,7 @@ public class RedditScrapper implements Scrapper {
                     System.err.println("Malformed URL: " + url);
                 }
             }else{
-                System.err.println("Not a valid image: " + url);
+                //System.err.println("Not a valid image: " + url);
             }
         }
         return filtered;
