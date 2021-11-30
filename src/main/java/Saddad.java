@@ -3,11 +3,9 @@ import Atom.Utility.Digest;
 import Atom.Utility.Pool;
 import Atom.Utility.Random;
 import net.schmizz.sshj.SSHClient;
-import net.schmizz.sshj.common.LoggerFactory;
 import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.xfer.InMemorySourceFile;
-import net.schmizz.sshj.xfer.LoggingTransferListener;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -22,17 +20,11 @@ public class Saddad {
     
     public static final int sizeW = 224, sizeH = 224;
     public static String[] args;
-    public static final ThreadLocal<SSHClient> sshLocal = ThreadLocal.withInitial(() -> {
-        try {
-            return setupSshj();
-        }catch(IOException e){
-            throw new RuntimeException(e);
-        }
-    });
+    public static SSHClient ssh;
     public static final ThreadLocal<SFTPClient> ftpLocal = ThreadLocal.withInitial(() -> {
         try {
-            SFTPClient c = sshLocal.get().newSFTPClient();
-            c.getFileTransfer().setTransferListener(new LoggingTransferListener(LoggerFactory.DEFAULT) {});
+            SFTPClient c = ssh.newSFTPClient();
+            c.getFileTransfer().setTransferListener(new LoggerTransferLister());
             return c;
         }catch(IOException e){
             throw new RuntimeException(e);
@@ -62,6 +54,7 @@ public class Saddad {
             System.err.println("<host> <port> <username> <password>");
             System.exit(1);
         }
+        ssh = setupSshj();
         if (args.length > 5){
             remoteDir = args[4];
             System.err.println("Remote dir: " + remoteDir);
