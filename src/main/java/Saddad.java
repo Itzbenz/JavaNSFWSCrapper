@@ -40,7 +40,7 @@ public class Saddad {
     });
     public static Integer[] scalingType = {Image.SCALE_FAST, Image.SCALE_REPLICATE, Image.SCALE_AREA_AVERAGING, Image.SCALE_SMOOTH, Image.SCALE_DEFAULT};
     static volatile boolean save = false;
-    
+    public static String remoteDir = "/home/saddad/";
     public static File getSaveFile(Scrapper s) {
         return new File("state-" + s.getClass().getSimpleName() + ".state");
     }
@@ -58,9 +58,13 @@ public class Saddad {
     }
     
     public static void main(String[] args) throws IOException {
-        if (args.length != 4){
+        if (args.length < 4){
             System.err.println("<host> <port> <username> <password>");
             System.exit(1);
+        }
+        if (args.length > 5){
+            remoteDir = args[4];
+            System.err.println("Remote dir: " + remoteDir);
         }
         if (Pool.service instanceof ThreadPoolExecutor){
             ((ThreadPoolExecutor) Pool.service).setMaximumPoolSize(Runtime.getRuntime().availableProcessors() * 20);
