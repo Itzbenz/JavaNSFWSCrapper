@@ -21,10 +21,17 @@ public class Saddad {
     public static final int sizeW = 224, sizeH = 224;
     public static String[] args;
     public static SSHClient ssh;
+    public static final ThreadLocal<SSHClient> sshLocal = ThreadLocal.withInitial(() -> {
+        try {
+            return setupSshj();
+        }catch(IOException e){
+            throw new RuntimeException(e);
+        }
+    });   
     public static final ThreadLocal<SFTPClient> ftpLocal = ThreadLocal.withInitial(() -> {
         try {
-            SFTPClient c = ssh.newSFTPClient();
-            c.getFileTransfer().setTransferListener(new LoggerTransferLister());
+            SFTPClient c = sshLocal.get();
+            //c.getFileTransfer().setTransferListener(new LoggerTransferLister());
             return c;
         }catch(IOException e){
             throw new RuntimeException(e);
@@ -63,7 +70,7 @@ public class Saddad {
         remoteDir = remoteDir.endsWith("/") ? remoteDir.substring(0, remoteDir.length() - 1) : remoteDir;
         System.err.println("Remote dir: " + remoteDir);
         if (Pool.service instanceof ThreadPoolExecutor){
-            ((ThreadPoolExecutor) Pool.service).setMaximumPoolSize(Runtime.getRuntime().availableProcessors() * 20);
+            ((ThreadPoolExecutor) Pool.service).setMaximumPoolSize(Runtime.getRuntime().availableProcessors() * 40);
             System.err.println("Setting max pool size to " + ((ThreadPoolExecutor) Pool.service).getMaximumPoolSize());
         }
     
