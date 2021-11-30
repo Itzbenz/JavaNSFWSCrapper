@@ -32,7 +32,7 @@ public class Saddad {
     });
     public static Integer[] scalingType = {Image.SCALE_FAST, Image.SCALE_REPLICATE, Image.SCALE_AREA_AVERAGING, Image.SCALE_SMOOTH, Image.SCALE_DEFAULT};
     static volatile boolean save = false;
-    public static String remoteDir = "/home/saddad/";
+    public static String remoteDir = "dataset";
     public static File getSaveFile(Scrapper s) {
         return new File("state-" + s.getClass().getSimpleName() + ".state");
     }
@@ -58,8 +58,10 @@ public class Saddad {
         ssh = setupSshj();
         if (args.length > 5){
             remoteDir = args[4];
-            System.err.println("Remote dir: " + remoteDir);
+        
         }
+        remoteDir = remoteDir.endsWith("/") ? remoteDir.substring(0, remoteDir.length() - 1) : remoteDir;
+        System.err.println("Remote dir: " + remoteDir);
         if (Pool.service instanceof ThreadPoolExecutor){
             ((ThreadPoolExecutor) Pool.service).setMaximumPoolSize(Runtime.getRuntime().availableProcessors() * 20);
             System.err.println("Setting max pool size to " + ((ThreadPoolExecutor) Pool.service).getMaximumPoolSize());
@@ -214,7 +216,6 @@ public class Saddad {
             }
         }, path);
     
-    
     }
     
     //encode to upload to sftp
@@ -232,10 +233,12 @@ public class Saddad {
     public static BufferedImage resize(BufferedImage img, int newW, int newH) {
         Image tmp = img.getScaledInstance(newW, newH, Random.getRandom(scalingType));
         BufferedImage dimg = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_RGB);
-        
         Graphics2D g2d = dimg.createGraphics();
         g2d.drawImage(tmp, 0, 0, null);
         g2d.dispose();
         return dimg;
     }
+    
+    //compress image
+    
 }

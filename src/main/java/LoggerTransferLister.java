@@ -23,14 +23,14 @@ public class LoggerTransferLister implements TransferListener {
     @Override
     public StreamCopier.Listener file(final String name, final long size) {
         final String path = realPath + name;
-        System.err.println("Started transferring file `" + path + "`, size: " + size);
+        //System.err.println("Started transferring file `" + path + "`, size: " + size);
         return transferred -> {
             
             long percent = 100;
             if (size > 0){
                 percent = (transferred * 100) / size;
             }
-            System.err.println("Transferred " + path + " file, " + percent + "%");
+            System.err.println("Transferred " + path + " file, " + percent + "%" + " of " + size);
             
         };
     }
