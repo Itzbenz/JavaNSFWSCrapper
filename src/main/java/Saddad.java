@@ -30,7 +30,7 @@ public class Saddad {
     });   
     public static final ThreadLocal<SFTPClient> ftpLocal = ThreadLocal.withInitial(() -> {
         try {
-            SFTPClient c = sshLocal.get();
+            SFTPClient c = sshLocal.get().newSFTPClient();
             //c.getFileTransfer().setTransferListener(new LoggerTransferLister());
             return c;
         }catch(IOException e){
