@@ -50,6 +50,7 @@ public class Saddad {
     }
     
     public static void main(String[] args) throws IOException {
+        Saddad.args = args;
         if (args.length < 4){
             System.err.println("<host> <port> <username> <password>");
             System.exit(1);
@@ -63,7 +64,7 @@ public class Saddad {
             ((ThreadPoolExecutor) Pool.service).setMaximumPoolSize(Runtime.getRuntime().availableProcessors() * 20);
             System.err.println("Setting max pool size to " + ((ThreadPoolExecutor) Pool.service).getMaximumPoolSize());
         }
-        Saddad.args = args;
+    
         //20 gigabytes
         long bytes = 20L * 1024 * 1024 * 1024;
         final Scrapper[] scrappers = new Scrapper[]{new RedditScrapper()};
