@@ -30,17 +30,22 @@ public class LocalFileStorage implements Storage {
         if (data.length > 1024 * 1024 * 1024 && exists(name)) return;
         Files.write(Path.of(parent, name), data);
     }
-    
+
     @Override
     public boolean exists(String name) {
         return Files.exists(Path.of(parent, name));
     }
-    
+
     @Override
     public long totalBytes() {
         return parentFile.getTotalSpace();
     }
-    
+
+    @Override
+    public boolean failing() {
+        return false;
+    }
+
     @Override
     public int size() {
         if (parentFile.list() == null) return 0;

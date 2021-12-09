@@ -52,8 +52,7 @@ public class Saddad {
     public static void main(String[] args) throws IOException {
         Saddad.args = args;
         if (args.length != 1){
-            System.err.println("<path>");
-            System.exit(1);
+            args = new String[]{"./dataset"};
         }
         File path = new File(args[0]);
         path = path.getAbsoluteFile();
@@ -153,7 +152,8 @@ public class Saddad {
             Pool.async(() -> {
                 try {
                     BufferedImage finalImage = ImageIO.read(url);
-                    process(finalImage, url.toExternalForm(), nsfw);
+                    if (finalImage != null)
+                        process(finalImage, url.toExternalForm(), nsfw);
                 }catch(Throwable e){
                     System.err.println("Failed to process image from url: " + url);
                     System.err.println(e.getMessage());

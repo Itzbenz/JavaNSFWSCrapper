@@ -4,7 +4,7 @@
 /*.state
 # Log file
 *.log
-
+dataset
 # BlueJ files
 *.ctxt
 set_git.sh
