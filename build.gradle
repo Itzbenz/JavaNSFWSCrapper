@@ -116,7 +116,6 @@ artifacts {
             testImplementation 'org.junit.jupiter:junit-jupiter:5.7.0'
             testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.1'
             compileOnly group: 'org.jetbrains', name: 'annotations', version: '21.0.1'
-            implementation 'com.hierynomus:sshj:0.31.0'
             implementation 'org.json:json:20210307'
 
             testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'

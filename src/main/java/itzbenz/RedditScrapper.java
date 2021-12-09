@@ -1,3 +1,5 @@
+package itzbenz;
+
 import Atom.Net.Request;
 import Atom.Utility.Random;
 import Atom.Utility.Utility;
@@ -29,7 +31,7 @@ public class RedditScrapper implements Scrapper {
         URL u = new URL("https://www.reddit.com/r/" + subreddit + "/new.json?limit=100" + (id == null ? "" : "&after=" + id));
         //http request
         //nsfw contain
-    
+        
         byte[] b = Request.get(u.toExternalForm(), c -> {
             //set user agent
             c.setRequestProperty("User-Agent", "Reddit API");
@@ -80,8 +82,7 @@ public class RedditScrapper implements Scrapper {
     
     @Override
     public void loadScrapperState(File file) throws IOException {
-        new JSONObject(new FileReader(file)).toMap()
-                .forEach((key, value) -> lastID.put(key.hashCode(), value == null ? null : value.toString()));
+        new JSONObject(new FileReader(file)).toMap().forEach((key, value) -> lastID.put(key.hashCode(), value == null ? null : value.toString()));
     }
     
     @Override

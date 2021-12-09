@@ -1,3 +1,5 @@
+package itzbenz;
+
 import net.schmizz.sshj.common.StreamCopier;
 import net.schmizz.sshj.xfer.TransferListener;
 

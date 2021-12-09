@@ -1,20 +1,19 @@
+package itzbenz;
+
 import Atom.Time.Timer;
 import Atom.Utility.Digest;
 import Atom.Utility.Pool;
 import Atom.Utility.Random;
-import net.schmizz.sshj.SSHClient;
-import net.schmizz.sshj.sftp.SFTPClient;
-import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
-import net.schmizz.sshj.xfer.InMemorySourceFile;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 import java.util.WeakHashMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -22,28 +21,14 @@ public class Saddad {
     
     public static final int sizeW = 224, sizeH = 224;
     public static String[] args;
-    public static final ThreadLocal<SSHClient> sshLocal = ThreadLocal.withInitial(() -> {
-        try {
-            return setupSshj();
-        }catch(IOException e){
-            throw new RuntimeException(e);
-        }
-    });
-    public static SSHClient ssh;
-    public static final ThreadLocal<SFTPClient> ftpLocal = ThreadLocal.withInitial(() -> {
-        try {
-            //c.getFileTransfer().setTransferListener(new LoggerTransferLister());
-            return ssh.newSFTPClient();
-        }catch(IOException e){
-            throw new RuntimeException(e);
-        }
-    });
+    
     
     public static Integer[] scalingType = {Image.SCALE_FAST, Image.SCALE_REPLICATE, Image.SCALE_AREA_AVERAGING, Image.SCALE_SMOOTH, Image.SCALE_DEFAULT};
-    public static String remoteDir = "dataset";
+    
     public static WeakHashMap<URL, Object> processed = new WeakHashMap<>(20000, 0.8f);
     static volatile boolean save = false;
     static long nsfwCount = 0, sfwCount = 0;
+    public static final String format = "jpg";
     
     public static File getSaveFile(Scrapper s) {
         return new File("state-" + s.getClass().getSimpleName() + ".state");
@@ -61,24 +46,27 @@ public class Saddad {
         }
     }
     
+    public static Storage nsfwStorage, sfwStorage;
+    
+    //break down this method
     public static void main(String[] args) throws IOException {
         Saddad.args = args;
-        if (args.length < 4){
-            System.err.println("<host> <port> <username> <password>");
+        if (args.length != 1){
+            System.err.println("<path>");
             System.exit(1);
         }
-        ssh = setupSshj();
-        if (args.length > 5){
-            remoteDir = args[4];
-    
-        }
-        remoteDir = remoteDir.endsWith("/") ? remoteDir.substring(0, remoteDir.length() - 1) : remoteDir;
-        System.err.println("Remote dir: " + remoteDir);
+        File path = new File(args[0]);
+        path = path.getAbsoluteFile();
+        path.mkdirs();
+        nsfwStorage = new LocalFileStorage(path, "nsfw");
+        sfwStorage = new LocalFileStorage(path, "sfw");
+        
+        System.err.println("Dir: " + path.getAbsolutePath());
         if (Pool.service instanceof ThreadPoolExecutor){
             ((ThreadPoolExecutor) Pool.service).setMaximumPoolSize(Runtime.getRuntime().availableProcessors() * 40);
             System.err.println("Setting max pool size to " + ((ThreadPoolExecutor) Pool.service).getMaximumPoolSize());
         }
-        Pool.parallelAsync = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        //Pool.parallelAsync = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         //20 gigabytes
         long bytes = 20L * 1024 * 1024 * 1024;
         final Scrapper[] scrappers = new Scrapper[]{new RedditScrapper()};
@@ -99,16 +87,16 @@ public class Saddad {
         });
         Runtime.getRuntime().addShutdownHook(savingScrapper);
         Timer timer = new Timer(TimeUnit.SECONDS, 5), limit = new Timer(TimeUnit.MINUTES, 30);
-    
+        
         while (true) {
             for (Scrapper scrapper : scrappers) {
                 try {
                     boolean nsfw = Random.getBool();
                     List<URL> urls = nsfw ? scrapper.nsfw() : scrapper.sfw();
-    
-                    if (timer.get())
+                    
+                    if (timer.get()){
                         System.out.println("nsfw: " + nsfwCount + " sfw: " + sfwCount + " total: " + (nsfwCount + sfwCount) + " threads: " + ((ThreadPoolExecutor) Pool.service).getPoolSize());
-    
+                    }
                     // Pool.submit(() -> {
                     try {
                         process(urls, nsfw);
@@ -128,7 +116,7 @@ public class Saddad {
                 System.err.println("Limit reached");
                 Pool.parallelAsync.shutdown();
                 Pool.service.shutdown();
-    
+                
                 System.err.println("Awaiting termination Timeout: 2 minutes");
                 try {
                     boolean b = Pool.parallelAsync.awaitTermination(1, TimeUnit.MINUTES);
@@ -142,37 +130,12 @@ public class Saddad {
                 }catch(InterruptedException e){
                     System.err.println("Interrupted while awaiting service termination");
                 }
-    
+                
                 savingScrapper.start();
                 break;
             }
         }
-    
-    }
-    
-    //CPU Intensive
-    public static void process(BufferedImage image, String name, final boolean nsfw) {
-        BufferedImage resized = resize(image, sizeW, sizeH);
-        try {
-            byte[] encoded = encodeImage(resized);
-            //switch to IO intensive
-            Pool.submit(() -> {
-                try {
-                    uploadToSftp(encoded, nsfw);
-                }catch(Exception e){
-                    //??????
-                    System.err.println("Failed to upload image to sftp, image: " + name);
-                    System.err.println(e.getMessage());
-                }
-            });
-        }catch(Exception e){
-            // ???? what, how
-            System.err.println("Failed to encode image: " + name);
-            System.err.println(e.getMessage());
-        }
-        //???????
-        resized.flush();
-        image.flush();
+        
     }
     
     public static void process(List<URL> urls, boolean nsfw) {
@@ -201,58 +164,48 @@ public class Saddad {
         }
     }
     
-    public static SSHClient setupSshj() throws IOException {
-        return setupSshj(args[0], Integer.parseInt(args[1]), args[2], args[3]);
+    //CPU Intensive
+    public static void process(BufferedImage image, String name, final boolean nsfw) {
+        BufferedImage resized = resize(image, sizeW, sizeH);
+        try {
+            byte[] encoded = encodeImage(resized);
+            //switch to IO intensive
+            Pool.submit(() -> {
+                try {
+                    write(encoded, nsfw);
+                }catch(Exception e){
+                    //??????
+                    System.err.println("Failed to upload image to sftp, image: " + name);
+                    System.err.println(e.getMessage());
+                }
+            });
+        }catch(Exception e){
+            // ???? what, how
+            System.err.println("Failed to encode image: " + name);
+            System.err.println(e.getMessage());
+        }
+        //???????
+        resized.flush();
+        image.flush();
     }
     
-    public static SSHClient setupSshj(String remoteHost, int port, String username, String password) throws IOException {
-        SSHClient client = new SSHClient();
-        client.addHostKeyVerifier(new PromiscuousVerifier());
-        client.connect(remoteHost, port);
-        client.authPassword(username, password);
-        return client;
-    }
-    
-    //upload sftp using org.apache.sshd-sftp
-    public static void uploadToSftp(byte[] image, boolean nsfw) throws IOException {
-    
+    public static void write(byte[] image, boolean nsfw) throws IOException {
+        
         // override any default configuration...
         byte[] b = Atom.Utility.Digest.sha256(image);
         //to hex
         String name = Digest.toHex(b);
-    
-        String path = remoteDir + (nsfw ? "/nsfw/" : "/sfw/") + name + ".jpg";
-        try {
-            String dir = path.substring(0, path.lastIndexOf("/"));
-            ftpLocal.get().mkdirs(dir);
-        }catch(IOException ignored){
-        
+        if (nsfw){
+            nsfwStorage.write(name + "." + format, image);
+        }else{
+            sfwStorage.write(name + "." + format, image);
         }
-        if (ftpLocal.get().statExistence(path) != null) return;
-        String finalName = name;
-        ftpLocal.get().put(new InMemorySourceFile() {
-            @Override
-            public String getName() {
-                return finalName + ".jpg";
-            }
-        
-            @Override
-            public long getLength() {
-                return image.length;
-            }
-            
-            @Override
-            public InputStream getInputStream() throws IOException {
-                return new ByteArrayInputStream(image);
-            }
-        }, path);
-    
     }
     
     //encode to upload to sftp
     public static byte[] encodeImage(BufferedImage image) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ImageIO.write(image, "jpg", baos);
+        ImageIO.write(image, format, baos);
         baos.flush();
         byte[] imageInByte = baos.toByteArray();
         baos.close();

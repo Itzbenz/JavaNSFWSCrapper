@@ -1,3 +1,5 @@
+package itzbenz;
+
 import Atom.Exception.ShouldNotHappenedException;
 
 import java.net.MalformedURLException;
