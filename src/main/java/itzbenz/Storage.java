@@ -7,13 +7,10 @@ public interface Storage {
     
     boolean exists(String name);
     
-    default int size() {
+    default int length() {
         return 0;
     }
-    
-    default long totalBytes() {
-        return 0;
-    }
-    
+
+
     boolean failing();
 }

@@ -85,16 +85,17 @@ public class Saddad {
             }
         });
         Runtime.getRuntime().addShutdownHook(savingScrapper);
-        Timer timer = new Timer(TimeUnit.SECONDS, 5), limit = new Timer(TimeUnit.MINUTES, 30);
+        Timer timer = new Timer(TimeUnit.SECONDS, 5), limit = new Timer(TimeUnit.MINUTES, 40);
         
         while (true) {
+            boolean limited = limit.get();
             for (Scrapper scrapper : scrappers) {
                 try {
                     boolean nsfw = Random.getBool();
                     List<URL> urls = nsfw ? scrapper.nsfw() : scrapper.sfw();
                     
                     if (timer.get()){
-                        System.out.println("nsfw: " + nsfwCount + " sfw: " + sfwCount + " total: " + (nsfwCount + sfwCount) + " threads: " + ((ThreadPoolExecutor) Pool.service).getPoolSize());
+                        System.out.println("nsfw: " + nsfwCount + " sfw: " + sfwCount + " total in storage: " + (sfwStorage.length() + nsfwStorage.length()) + " threads: " + ((ThreadPoolExecutor) Pool.service).getPoolSize());
                     }
                     // Pool.submit(() -> {
                     try {
@@ -104,23 +105,24 @@ public class Saddad {
                         System.err.println(e.getMessage());
                     }
                     //});
-                }catch(Exception bs){
+                } catch (Exception bs) {
                     System.err.println(bs.getMessage());
                     System.err.println(scrapper.getClass().getName());
                     bs.printStackTrace();
                 }
             }
-            if (limit.get()){
+            //we still inside loop
+            if (limited) {
                 System.out.println("nsfw: " + nsfwCount + " sfw: " + sfwCount + " total: " + (nsfwCount + sfwCount) + " threads: " + ((ThreadPoolExecutor) Pool.service).getPoolSize());
                 System.err.println("Limit reached");
                 Pool.parallelAsync.shutdown();
                 Pool.service.shutdown();
-                
+
                 System.err.println("Awaiting termination Timeout: 2 minutes");
                 try {
                     boolean b = Pool.parallelAsync.awaitTermination(1, TimeUnit.MINUTES);
                     if (!b) System.err.println("Timeout while awaiting parallelAsync termination");
-                }catch(InterruptedException e){
+                } catch (InterruptedException e) {
                     System.err.println("Interrupted while awaiting parallelAsync termination");
                 }
                 try {

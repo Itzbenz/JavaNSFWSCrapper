@@ -36,10 +36,7 @@ public class LocalFileStorage implements Storage {
         return Files.exists(Path.of(parent, name));
     }
 
-    @Override
-    public long totalBytes() {
-        return parentFile.getTotalSpace();
-    }
+
 
     @Override
     public boolean failing() {
@@ -47,7 +44,7 @@ public class LocalFileStorage implements Storage {
     }
 
     @Override
-    public int size() {
+    public int length() {
         if (parentFile.list() == null) return 0;
         return Objects.requireNonNull(parentFile.list()).length;
     }
