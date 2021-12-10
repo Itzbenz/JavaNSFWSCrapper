@@ -118,15 +118,15 @@ public class Saddad {
                 Pool.parallelAsync.shutdown();
                 Pool.service.shutdown();
 
-                System.err.println("Awaiting termination Timeout: 2 minutes");
+                System.err.println("Awaiting termination Timeout: 6 minutes");
                 try {
-                    boolean b = Pool.parallelAsync.awaitTermination(1, TimeUnit.MINUTES);
+                    boolean b = Pool.parallelAsync.awaitTermination(3, TimeUnit.MINUTES);
                     if (!b) System.err.println("Timeout while awaiting parallelAsync termination");
                 } catch (InterruptedException e) {
                     System.err.println("Interrupted while awaiting parallelAsync termination");
                 }
                 try {
-                    boolean b = Pool.service.awaitTermination(1, TimeUnit.MINUTES);
+                    boolean b = Pool.service.awaitTermination(3, TimeUnit.MINUTES);
                     if (!b) System.err.println("Timeout while awaiting service termination");
                 }catch(InterruptedException e){
                     System.err.println("Interrupted while awaiting service termination");

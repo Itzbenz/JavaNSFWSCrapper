@@ -142,7 +142,7 @@ task doingYourJar(type: Jar) {
     archiveName(project.name+".jar")
     manifest {
         attributes(
-                'Main-Class': 'Saddad'
+                'Main-Class': 'itzbenz.Saddad'
         )
     }
     //exclude security signature
