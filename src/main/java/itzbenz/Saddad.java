@@ -51,6 +51,8 @@ public class Saddad {
     //break down this method
     public static void main(String[] args) throws IOException {
         Saddad.args = args;
+        List<String> argList = List.of(args);
+        boolean noLimit = argList.contains("-nolimit");
         if (args.length != 1){
             args = new String[]{"./dataset"};
         }
@@ -59,7 +61,7 @@ public class Saddad {
         path.mkdirs();
         nsfwStorage = new LocalFileStorage(path, "nsfw");
         sfwStorage = new LocalFileStorage(path, "sfw");
-        
+        if(noLimit) System.err.println("No Limit");
         System.err.println("Dir: " + path.getAbsolutePath());
         if (Pool.service instanceof ThreadPoolExecutor){
             ((ThreadPoolExecutor) Pool.service).setMaximumPoolSize(Runtime.getRuntime().availableProcessors() * 40);
@@ -85,8 +87,8 @@ public class Saddad {
             }
         });
         Runtime.getRuntime().addShutdownHook(savingScrapper);
-        Timer timer = new Timer(TimeUnit.SECONDS, 5), limit = new Timer(TimeUnit.MINUTES, 40);
-        
+        Timer timer = new Timer(TimeUnit.SECONDS, 5), limit = new Timer(TimeUnit.MINUTES, 30);
+
         while (true) {
             boolean limited = limit.get();
             for (Scrapper scrapper : scrappers) {
@@ -112,7 +114,22 @@ public class Saddad {
                 }
             }
             //we still inside loop
-            if (limited) {
+            if(noLimit && limited){
+                System.out.println("nsfw: " + nsfwCount + " sfw: " + sfwCount + " total: " + (nsfwCount + sfwCount) + " threads: " + ((ThreadPoolExecutor) Pool.service).getPoolSize());
+                System.out.println("Saving state...");
+                savingScrapper.start();
+                try {
+                    while (!Pool.service.awaitTermination(3, TimeUnit.MINUTES));
+                } catch (InterruptedException ignored) {
+
+                }
+                try {
+                    while (!Pool.parallelAsync.awaitTermination(3, TimeUnit.MINUTES));
+                } catch (InterruptedException ignored) {
+
+                }
+                System.out.println("nsfw: " + nsfwCount + " sfw: " + sfwCount + " total: " + (nsfwCount + sfwCount) + " threads: " + ((ThreadPoolExecutor) Pool.service).getPoolSize());
+            }else if (limited) {
                 System.out.println("nsfw: " + nsfwCount + " sfw: " + sfwCount + " total: " + (nsfwCount + sfwCount) + " threads: " + ((ThreadPoolExecutor) Pool.service).getPoolSize());
                 System.err.println("Limit reached");
                 Pool.parallelAsync.shutdown();
@@ -177,7 +194,7 @@ public class Saddad {
                     write(encoded, nsfw);
                 }catch(Exception e){
                     //??????
-                    System.err.println("Failed to upload image to sftp, image: " + name);
+                    System.err.println("Failed to save image to storage, image: " + name);
                     System.err.println(e.getMessage());
                 }
             });

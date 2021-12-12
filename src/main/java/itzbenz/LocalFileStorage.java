@@ -27,7 +27,6 @@ public class LocalFileStorage implements Storage {
     
     @Override
     public void write(String name, byte[] data) throws IOException {
-        if (data.length > 1024 * 1024 * 1024 && exists(name)) return;
         Files.write(Path.of(parent, name), data);
     }
 
