@@ -56,6 +56,19 @@ public class Saddad {
         }
     }
 
+    public static void saveScrapper(Scrapper[] scrappers) {
+        System.err.println("Saving scrapper state...");
+        for (Scrapper scrapper : scrappers) {
+            File f = getSaveFile(scrapper);
+            try {
+                scrapper.saveScrapperState(f);
+            } catch (Exception e) {
+                System.err.println("Fail to save scrapper state: " + scrapper.getClass().getSimpleName());
+                System.err.println(e.getMessage());
+            }
+        }
+    }
+
     //break down this method
     public static void main(String[] args) throws IOException {
         Saddad.args = args;
@@ -78,21 +91,11 @@ public class Saddad {
         long bytes = 20L * 1024 * 1024 * 1024;
         final Scrapper[] scrappers = new Scrapper[]{new RedditScrapper()};
         loadState(scrappers);
-        Thread savingScrapper = new Thread(() -> {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (save) return;
             save = true;
-            System.err.println("Saving scrapper state...");
-            for (Scrapper scrapper : scrappers) {
-                File f = getSaveFile(scrapper);
-                try {
-                    scrapper.saveScrapperState(f);
-                }catch(Exception e){
-                    System.err.println("Fail to save scrapper state: " + scrapper.getClass().getSimpleName());
-                    System.err.println(e.getMessage());
-                }
-            }
-        });
-        Runtime.getRuntime().addShutdownHook(savingScrapper);
+            saveScrapper(scrappers);
+        }));
         Timer timer = new Timer(TimeUnit.SECONDS, 5), limit = new Timer(TimeUnit.MINUTES, 30);
         int count = 0;
 
@@ -129,7 +132,7 @@ public class Saddad {
                 System.out.println("nsfw: " + nsfwCount + " sfw: " + sfwCount + " total: " + (nsfwCount + sfwCount) +
                         " threads: " + ((ThreadPoolExecutor) Pool.service).getPoolSize());
                 System.out.println("Saving state...");
-                savingScrapper.start();
+                saveScrapper(scrappers);
                 try {
                     Pool.service.awaitTermination(3, TimeUnit.MINUTES);
                 } catch (InterruptedException ignored) {
@@ -167,8 +170,8 @@ public class Saddad {
                 }catch(InterruptedException e){
                     System.err.println("Interrupted while awaiting service termination");
                 }
-                
-                savingScrapper.start();
+
+
                 break;
             }
         }
