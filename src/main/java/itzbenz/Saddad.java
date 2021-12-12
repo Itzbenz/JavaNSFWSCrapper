@@ -97,9 +97,11 @@ public class Saddad {
                     List<URL> urls = nsfw ? scrapper.nsfw() : scrapper.sfw();
                     
                     if (timer.get()){
-                        System.out.println("nsfw: " + nsfwCount + " sfw: " + sfwCount + " total in storage: " + (sfwStorage.length() + nsfwStorage.length()) + " threads: " + ((ThreadPoolExecutor) Pool.service).getPoolSize());
+                        System.out.println("nsfw: " + nsfwCount + " sfw: " + sfwCount + " total in storage: " +
+                                (sfwStorage.length() + nsfwStorage.length()) + " threads: " +
+                                (((ThreadPoolExecutor) Pool.service).getPoolSize()));
                     }
-                   
+
                     try {
                         process(urls, nsfw);
                     }catch(Exception e){
@@ -119,12 +121,12 @@ public class Saddad {
                 System.out.println("Saving state...");
                 savingScrapper.start();
                 try {
-                    while (!Pool.service.awaitTermination(3, TimeUnit.MINUTES));
+                    Pool.service.awaitTermination(3, TimeUnit.MINUTES);
                 } catch (InterruptedException ignored) {
 
                 }
                 try {
-                    while (!Pool.parallelAsync.awaitTermination(3, TimeUnit.MINUTES));
+                    Pool.parallelAsync.awaitTermination(3, TimeUnit.MINUTES);
                 } catch (InterruptedException ignored) {
 
                 }
