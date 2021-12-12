@@ -99,14 +99,14 @@ public class Saddad {
                     if (timer.get()){
                         System.out.println("nsfw: " + nsfwCount + " sfw: " + sfwCount + " total in storage: " + (sfwStorage.length() + nsfwStorage.length()) + " threads: " + ((ThreadPoolExecutor) Pool.service).getPoolSize());
                     }
-                    // Pool.submit(() -> {
+                   
                     try {
                         process(urls, nsfw);
                     }catch(Exception e){
                         System.err.println("Failed to process urls, scrapper: " + scrapper.getClass().getSimpleName());
                         System.err.println(e.getMessage());
                     }
-                    //});
+
                 } catch (Exception bs) {
                     System.err.println(bs.getMessage());
                     System.err.println(scrapper.getClass().getName());
