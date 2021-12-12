@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 import java.util.WeakHashMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -39,23 +40,31 @@ public class Saddad {
             try {
                 if (!getSaveFile(scrapper).exists()) continue;
                 scrapper.loadScrapperState(getSaveFile(scrapper));
-            }catch(IOException e){
+            } catch (IOException e) {
                 System.err.println("Failed to load state for scrapper: " + scrapper.getClass().getSimpleName());
                 System.err.println(e.getMessage());
             }
         }
     }
-    
+
     public static Storage nsfwStorage, sfwStorage;
-    
+
+    public static void reset() {
+        if (Pool.service instanceof ThreadPoolExecutor) {
+            ((ThreadPoolExecutor) Pool.service).setMaximumPoolSize(Runtime.getRuntime().availableProcessors() * 40);
+            System.err.println("Setting max pool size to " + ((ThreadPoolExecutor) Pool.service).getMaximumPoolSize());
+        }
+    }
+
     //break down this method
     public static void main(String[] args) throws IOException {
         Saddad.args = args;
         List<String> argList = List.of(args);
         boolean noLimit = argList.contains("-nolimit");
-        if (args.length != 1){
+        if (args.length != 1) {
             args = new String[]{"./dataset"};
         }
+        reset();
         File path = new File(args[0]);
         path = path.getAbsoluteFile();
         path.mkdirs();
@@ -63,10 +72,7 @@ public class Saddad {
         sfwStorage = new LocalFileStorage(path, "sfw");
         if(noLimit) System.err.println("No Limit");
         System.err.println("Dir: " + path.getAbsolutePath());
-        if (Pool.service instanceof ThreadPoolExecutor){
-            ((ThreadPoolExecutor) Pool.service).setMaximumPoolSize(Runtime.getRuntime().availableProcessors() * 40);
-            System.err.println("Setting max pool size to " + ((ThreadPoolExecutor) Pool.service).getMaximumPoolSize());
-        }
+
         //Pool.parallelAsync = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         //20 gigabytes
         long bytes = 20L * 1024 * 1024 * 1024;
@@ -88,6 +94,7 @@ public class Saddad {
         });
         Runtime.getRuntime().addShutdownHook(savingScrapper);
         Timer timer = new Timer(TimeUnit.SECONDS, 5), limit = new Timer(TimeUnit.MINUTES, 30);
+        int count = 0;
 
         while (true) {
             boolean limited = limit.get();
@@ -116,8 +123,11 @@ public class Saddad {
                 }
             }
             //we still inside loop
-            if(noLimit && limited){
-                System.out.println("nsfw: " + nsfwCount + " sfw: " + sfwCount + " total: " + (nsfwCount + sfwCount) + " threads: " + ((ThreadPoolExecutor) Pool.service).getPoolSize());
+            if(noLimit && limited) {
+                count++;
+                System.out.println("Iteration: " + count);
+                System.out.println("nsfw: " + nsfwCount + " sfw: " + sfwCount + " total: " + (nsfwCount + sfwCount) +
+                        " threads: " + ((ThreadPoolExecutor) Pool.service).getPoolSize());
                 System.out.println("Saving state...");
                 savingScrapper.start();
                 try {
@@ -130,7 +140,14 @@ public class Saddad {
                 } catch (InterruptedException ignored) {
 
                 }
-                System.out.println("nsfw: " + nsfwCount + " sfw: " + sfwCount + " total: " + (nsfwCount + sfwCount) + " threads: " + ((ThreadPoolExecutor) Pool.service).getPoolSize());
+                System.out.println("nsfw: " + nsfwCount + " sfw: " + sfwCount + " total: " + (nsfwCount + sfwCount) +
+                        " threads: " + ((ThreadPoolExecutor) Pool.service).getPoolSize());
+                Pool.parallelAsync.shutdownNow();
+                Pool.service.shutdownNow();
+                Pool.parallelAsync = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+                Pool.service = Executors.newCachedThreadPool();
+                reset();
+
             }else if (limited) {
                 System.out.println("nsfw: " + nsfwCount + " sfw: " + sfwCount + " total: " + (nsfwCount + sfwCount) + " threads: " + ((ThreadPoolExecutor) Pool.service).getPoolSize());
                 System.err.println("Limit reached");
